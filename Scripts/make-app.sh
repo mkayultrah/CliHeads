@@ -28,6 +28,7 @@ else
 fi
 
 cp Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 chmod 755 "$BIN"
 
 IDENTITY="${CODESIGN_IDENTITY:--}"
