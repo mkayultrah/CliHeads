@@ -55,6 +55,27 @@ struct ChatComposer: NSViewRepresentable {
             }
         }
 
+        /// The app has no Edit menu (it lives in the menu bar as an accessory), so the
+        /// usual Cmd+V/C/X/A/Z shortcuts never get routed. Handle them here.
+        override func performKeyEquivalent(with event: NSEvent) -> Bool {
+            guard window?.firstResponder === self else { return super.performKeyEquivalent(with: event) }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+            if flags == .command {
+                switch key {
+                case "v": paste(nil); return true
+                case "c": copy(nil); return true
+                case "x": cut(nil); return true
+                case "a": selectAll(nil); return true
+                case "z": undoManager?.undo(); return true
+                default: break
+                }
+            } else if flags == [.command, .shift], key == "z" {
+                undoManager?.redo(); return true
+            }
+            return super.performKeyEquivalent(with: event)
+        }
+
         override func draw(_ dirtyRect: NSRect) {
             super.draw(dirtyRect)
             guard string.isEmpty, !placeholder.isEmpty, !hasMarkedText() else { return }

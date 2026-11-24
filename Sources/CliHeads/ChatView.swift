@@ -911,14 +911,18 @@ private struct ProseView: View, Equatable {
                     switch piece {
                     case .plain(let string):
                         inline(string).font(.system(size: 13))
+                            .fixedSize(horizontal: false, vertical: true)
                     case .heading(let level, let string):
                         inline(string).font(.system(size: headingSize(level), weight: .bold))
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 2)
                     case .item(let marker, let string, let depth):
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(marker).font(.system(size: 13))
                                 .frame(minWidth: 12, alignment: .trailing)
+                            // Without this, a long item gets cut off with "…" instead of wrapping.
                             inline(string).font(.system(size: 13))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(.leading, CGFloat(depth) * 12)
                     case .table(let rows):

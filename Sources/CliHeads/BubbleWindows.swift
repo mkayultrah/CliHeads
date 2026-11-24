@@ -565,6 +565,25 @@ final class HeadWindows {
         chatPanel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         startPanel(opening: true)
+        focusComposer()
+    }
+
+    /// Puts the cursor in the message box every time the chat opens, not just the first.
+    private func focusComposer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isExpanded, let root = self.chatPanel.contentView,
+                  let editor = Self.firstView(of: ChatComposer.ReturnToSendTextView.self, in: root),
+                  self.chatPanel.firstResponder !== editor else { return }
+            self.chatPanel.makeFirstResponder(editor)
+        }
+    }
+
+    private static func firstView<T: NSView>(of type: T.Type, in view: NSView) -> T? {
+        if let match = view as? T { return match }
+        for child in view.subviews {
+            if let match = firstView(of: type, in: child) { return match }
+        }
+        return nil
     }
 
     func collapse() {

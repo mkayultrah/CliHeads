@@ -71,7 +71,7 @@ struct ImageAttachment: Identifiable, Equatable {
     }
 
     /// Image files first (Finder copy or drag), then raw image data (screenshots).
-    /// Plain text on the pasteboard wins over raw image data so normal pastes still work.
+    /// Real text on the pasteboard wins over image data so normal pastes still work.
     static func from(pasteboard: NSPasteboard) -> [ImageAttachment] {
         let options: [NSPasteboard.ReadingOptionKey: Any] = [
             .urlReadingFileURLsOnly: true,
@@ -80,12 +80,22 @@ struct ImageAttachment: Identifiable, Equatable {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL], !urls.isEmpty {
             return urls.compactMap { from(fileURL: $0) }
         }
-        if pasteboard.availableType(from: [.string]) != nil { return [] }
-        if pasteboard.availableType(from: [.png, .tiff]) != nil, let image = NSImage(pasteboard: pasteboard),
-           let attachment = from(image: image) {
+        guard NSImage.canInit(with: pasteboard) else { return [] }
+        // Apps like Word put a picture of the text next to the text itself; take the text then.
+        // A lone link (browsers add the image URL when you copy an image) doesn't count.
+        if let string = pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !string.isEmpty, !Self.isLink(string) {
+            return []
+        }
+        if let image = NSImage(pasteboard: pasteboard), let attachment = from(image: image) {
             return [attachment]
         }
         return []
+    }
+
+    private static func isLink(_ string: String) -> Bool {
+        guard !string.contains(where: \.isWhitespace), let url = URL(string: string) else { return false }
+        return ["http", "https", "file", "data"].contains(url.scheme?.lowercased() ?? "")
     }
 
     private static func scale(_ cg: CGImage, by factor: Double) -> CGImage? {
