@@ -38,6 +38,15 @@ Each one runs through its own CLI, so install it and sign in from Terminal first
 - launch at login from the menu bar icon
 - respects `CLAUDE_CONFIG_DIR` if you keep Claude's config somewhere else
 
+## Download
+
+Grab `CliHeads-<version>.zip` from the [latest release](https://github.com/mkayultrah/CliHeads/releases/latest), unzip it and drag `CliHeads.app` into Applications. Runs on Apple silicon and Intel, macOS 14 or newer.
+
+The app isn't notarised by Apple, so the first time you open it macOS will say it can't verify it. Either:
+
+- open System Settings > Privacy & Security, scroll down and click **Open Anyway**, or
+- run `xattr -dr com.apple.quarantine /Applications/CliHeads.app` in Terminal, then open it normally.
+
 ## Build
 
 Needs macOS 14 or newer and the Xcode command line tools (`xcode-select --install`).
