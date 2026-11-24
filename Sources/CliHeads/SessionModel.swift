@@ -29,7 +29,15 @@ final class AgentSession: ObservableObject {
     /// Tool uses waiting on Allow / Deny, oldest first.
     @Published private(set) var pendingPermissions: [PermissionPrompt] = []
     /// Shift+tab mode, shown under the composer like the CLI's footer.
-    @Published private(set) var permissionMode: PermissionMode = .default
+    /// Saved with the head, and remembered per agent so new heads start on the same mode.
+    @Published private(set) var permissionMode: PermissionMode = .default {
+        didSet {
+            guard permissionMode != oldValue else { return }
+            UserDefaults.standard.set(permissionMode.rawValue, forKey: Self.lastModeKey(provider))
+            onSave?()
+        }
+    }
+    private static func lastModeKey(_ provider: AgentProvider) -> String { "lastPermissionMode.\(provider.rawValue)" }
     /// Non nil while the /resume list is open. Holds the search text typed after /resume.
     @Published var resumeQuery: String?
     /// Images to go out with the next message.
@@ -82,6 +90,11 @@ final class AgentSession: ObservableObject {
         // Older heads kept the whole first prompt as the title.
         title = saved.title.count > 34 ? SessionCatalog.shortTitle(saved.title) : saved.title
         directory = saved.directory; agentSessionID = saved.agentSessionID
+        let remembered = saved.permissionMode
+            ?? UserDefaults.standard.string(forKey: Self.lastModeKey(saved.provider))
+        if let mode = remembered.flatMap(PermissionMode.init(rawValue:)), saved.provider.modes.contains(mode) {
+            permissionMode = mode
+        }
         // An empty reply means the app quit mid turn. Left in, it shows as typing
         // dots forever, so drop it and pull the real reply from the CLI transcript.
         let interrupted = saved.messages.contains { $0.role == .assistant && $0.text.isEmpty }
@@ -752,7 +765,8 @@ final class AgentSession: ObservableObject {
 
     func snapshot(x: Double?, y: Double?) -> SavedHead {
         SavedHead(id: id, title: title, directory: directory, provider: provider,
-                  agentSessionID: agentSessionID, messages: Array(messages.suffix(200)), x: x, y: y)
+                  agentSessionID: agentSessionID, messages: Array(messages.suffix(200)), x: x, y: y,
+                  permissionMode: permissionMode.rawValue)
     }
 
     func executablePath() -> String? { CLILocator.find(provider.executable) }

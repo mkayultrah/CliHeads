@@ -44,6 +44,10 @@ struct AgentTests {
         must(old[0].x == -1280 && old[0].y == 420, "Existing monitor position survives")
         let roundTrip = try JSONDecoder().decode([SavedHead].self, from: JSONEncoder().encode(old))
         must(roundTrip[0].agentSessionID == "old-id", "Migrated ID persists")
+        must(old[0].permissionMode == nil, "Old saves have no mode")
+        let moded = SavedHead(title: "t", directory: "/tmp", provider: .claude, permissionMode: "bypassPermissions")
+        let modedBack = try JSONDecoder().decode(SavedHead.self, from: JSONEncoder().encode(moded))
+        must(modedBack.permissionMode == "bypassPermissions", "Permission mode persists")
 
         // Synthetic local transcripts; no real ~/.claude or ~/.codex files read by tests.
         let fm = FileManager.default

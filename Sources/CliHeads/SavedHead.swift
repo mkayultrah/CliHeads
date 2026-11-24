@@ -23,16 +23,20 @@ struct SavedHead: Codable {
     var messages: [ChatMessage]
     var x: Double?
     var y: Double?
+    /// Shift+tab mode the head was last on, as the PermissionMode raw value.
+    var permissionMode: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, directory, provider, agentSessionID, claudeSessionID, messages, x, y
+        case id, title, directory, provider, agentSessionID, claudeSessionID, messages, x, y, permissionMode
     }
 
     init(id: UUID = UUID(), title: String, directory: String, provider: AgentProvider,
-         agentSessionID: String? = nil, messages: [ChatMessage] = [], x: Double? = nil, y: Double? = nil) {
+         agentSessionID: String? = nil, messages: [ChatMessage] = [], x: Double? = nil, y: Double? = nil,
+         permissionMode: String? = nil) {
         self.id = id; self.title = title; self.directory = directory
         self.provider = provider; self.agentSessionID = agentSessionID
         self.messages = messages; self.x = x; self.y = y
+        self.permissionMode = permissionMode
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +50,7 @@ struct SavedHead: Codable {
         messages = try c.decodeIfPresent([ChatMessage].self, forKey: .messages) ?? []
         x = try c.decodeIfPresent(Double.self, forKey: .x)
         y = try c.decodeIfPresent(Double.self, forKey: .y)
+        permissionMode = try c.decodeIfPresent(String.self, forKey: .permissionMode)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -55,6 +60,7 @@ struct SavedHead: Codable {
         try c.encodeIfPresent(agentSessionID, forKey: .agentSessionID)
         try c.encode(messages, forKey: .messages)
         try c.encodeIfPresent(x, forKey: .x); try c.encodeIfPresent(y, forKey: .y)
+        try c.encodeIfPresent(permissionMode, forKey: .permissionMode)
     }
 }
 
