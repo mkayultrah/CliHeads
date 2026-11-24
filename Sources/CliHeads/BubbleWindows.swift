@@ -163,6 +163,20 @@ final class BubbleSurface: NSView {
 
     private func drawBubble(in rect: NSRect, alpha: CGFloat, symbolAlpha: CGFloat) {
         let circle = NSBezierPath(ovalIn: rect)
+        if let logo = HeadArt.logo(for: provider.rawValue) {
+            NSGraphicsContext.saveGraphicsState()
+            let shadow = NSShadow()
+            shadow.shadowBlurRadius = 10
+            shadow.shadowOffset = NSSize(width: 0, height: -1)
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.22 * alpha)
+            shadow.set()
+            // Shadow caster sits just inside the face so its edge never peeks out.
+            NSColor.black.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
+            NSGraphicsContext.restoreGraphicsState()
+            HeadArt.drawFace(provider: provider.rawValue, logo: logo, in: rect, pressed: pressed, alpha: alpha)
+            return
+        }
         // Translucent colour over a real NSVisualEffectView. The old 75% tint
         // practically hid the blur, making the head look like flat plastic.
         let tint = alpha * (pressed ? 0.34 : 0.20)
@@ -437,6 +451,8 @@ final class HeadWindows {
         frosted.wantsLayer = true
         frosted.layer?.cornerRadius = (Self.bubbleSize - 10) / 2
         frosted.layer?.masksToBounds = true
+        // Logo heads paint their own glass; the blur behind them only fringes the edge.
+        frosted.isHidden = HeadArt.logo(for: session.provider.rawValue) != nil
         glassContainer.addSubview(frosted)
         glassContainer.addSubview(bubbleView)
         // The transform lives on a child of the content view, so the window's
@@ -536,6 +552,7 @@ final class HeadWindows {
         chatPanel.setFrameOrigin(origin)
         guard !isExpanded else { return }
         isExpanded = true
+        chrome.openCount += 1
         previewTimer?.invalidate()
         previewExpiresAt = 0
         session.markRead()

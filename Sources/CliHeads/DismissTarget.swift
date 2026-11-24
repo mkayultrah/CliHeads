@@ -286,6 +286,8 @@ final class DismissView: NSView {
 @MainActor
 final class ChatChrome: ObservableObject {
     @Published var caretX: CGFloat = 40
+    /// Bumped each time the chat opens, so the message list is rebuilt while visible.
+    @Published var openCount = 0
 }
 
 struct CaretShape: Shape {
@@ -313,7 +315,7 @@ struct ChatContainer: View {
                 .frame(width: 24, height: HeadWindows.caretHeight)
                 .offset(x: chrome.caretX - 12)
                 .frame(width: HeadWindows.chatSize.width, alignment: .leading)
-            ChatView(session: session, collapse: collapse)
+            ChatView(session: session, collapse: collapse, openCount: chrome.openCount)
         }
         .frame(width: HeadWindows.chatSize.width, height: HeadWindows.chatSize.height)
     }

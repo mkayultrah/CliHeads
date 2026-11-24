@@ -5,6 +5,7 @@ import ImageIO
 struct ChatView: View {
     @ObservedObject var session: AgentSession
     let collapse: () -> Void
+    var openCount = 0
     @State private var showEvents = false
     @State private var followOutput = true
     @State private var showingTerminal = false
@@ -91,7 +92,6 @@ struct ChatView: View {
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(.white.opacity(0.24), lineWidth: 1))
         .preferredColorScheme(nil)
-        .onAppear { session.markRead() }
         .onChange(of: session.draft) { _, _ in slashIndex = 0; resumeIndex = 0 }
         .task(id: session.resumeQuery != nil) {
             guard session.resumeQuery != nil else { resumeItems = nil; return }
@@ -115,10 +115,15 @@ struct ChatView: View {
 
     private var header: some View {
         HStack(spacing: 9) {
-            ZStack {
-                Circle().fill(violet.gradient).frame(width: 28, height: 28)
-                Image(systemName: providerSymbol)
-                    .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+            if let logo = HeadArt.logo(for: session.provider.rawValue) {
+                Image(nsImage: HeadArt.image(provider: session.provider.rawValue, logo: logo, diameter: 28))
+                    .frame(width: 28, height: 28)
+            } else {
+                ZStack {
+                    Circle().fill(violet.gradient).frame(width: 28, height: 28)
+                    Image(systemName: providerSymbol)
+                        .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                }
             }
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 5) {
@@ -236,6 +241,9 @@ struct ChatView: View {
                 }.padding(.horizontal, 16).padding(.vertical, 18)
             }
             .defaultScrollAnchor(.bottom)
+            // The panel is built hidden, and a lazy stack laid out off screen can stay
+            // blank until scrolled. A fresh scroll view per open lays out while visible.
+            .id(openCount)
             .onChange(of: session.updateCounter) { _, _ in
                 if followOutput { proxy.scrollTo("bottom", anchor: .bottom) }
             }

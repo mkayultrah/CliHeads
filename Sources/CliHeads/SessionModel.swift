@@ -739,7 +739,11 @@ final class AgentSession: ObservableObject {
     }
 
     func markRead() { unread = 0; expanded = true }
-    func markCollapsed() { expanded = false }
+    func markCollapsed() {
+        expanded = false
+        // Closing the chat with an approval still waiting keeps a badge on the head.
+        if !pendingPermissions.isEmpty, unread == 0 { unread = 1 }
+    }
 
     private func addDiagnostic(_ line: String) {
         diagnostics.append("\(Date().formatted(date: .omitted, time: .standard))  \(line)")
