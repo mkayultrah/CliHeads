@@ -40,7 +40,7 @@ Each one runs through its own CLI, so install it and sign in from Terminal first
 
 ## Download
 
-Grab `CliHeads-<version>.zip` from the [latest release](https://github.com/mkayultrah/CliHeads/releases/latest), unzip it and drag `CliHeads.app` into Applications. Runs on Apple silicon and Intel, macOS 14 or newer.
+Grab `CliHeads-<version>.dmg` from the [latest release](https://github.com/mkayultrah/CliHeads/releases/latest), open it and drag `CliHeads.app` onto the Applications folder. Runs on Apple silicon and Intel, macOS 14 or newer.
 
 The app isn't notarised by Apple, so the first time you open it macOS will say it can't verify it. Either:
 
@@ -60,6 +60,7 @@ That builds `dist/CliHeads.app`, quits any running copy and opens the new one. T
 ```sh
 ./Scripts/make-app.sh               # this Mac's arch, signed ad hoc
 UNIVERSAL=1 ./Scripts/make-app.sh   # arm64 + x86_64
+./Scripts/make-dmg.sh               # wrap dist/CliHeads.app in dist/CliHeads-<version>.dmg
 ```
 
 The icon is drawn in code. To change it, edit `Scripts/make-icon.swift` and run `swift Scripts/make-icon.swift`.
