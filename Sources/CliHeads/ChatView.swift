@@ -228,11 +228,14 @@ struct ChatView: View {
     private var conversation: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                // Plain VStack on purpose: a LazyVStack works out its visible rows while the
+                // panel is still scaled down by the open animation and then shows nothing
+                // until you scroll. The last 200 messages matches what gets saved anyway.
+                VStack(alignment: .leading, spacing: 16) {
                     if session.messages.isEmpty {
                         emptyState.padding(.top, 100)
                     }
-                    ForEach(session.messages) { message in
+                    ForEach(session.messages.suffix(200)) { message in
                         MessageView(message: message, violet: violet, symbol: providerSymbol,
                                     typing: session.isWorking && message.id == session.messages.last?.id)
                             .id(message.id)
@@ -241,8 +244,7 @@ struct ChatView: View {
                 }.padding(.horizontal, 16).padding(.vertical, 18)
             }
             .defaultScrollAnchor(.bottom)
-            // The panel is built hidden, and a lazy stack laid out off screen can stay
-            // blank until scrolled. A fresh scroll view per open lays out while visible.
+            // Fresh scroll view per open, so it always lands on the newest message.
             .id(openCount)
             .onChange(of: session.updateCounter) { _, _ in
                 if followOutput { proxy.scrollTo("bottom", anchor: .bottom) }
