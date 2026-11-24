@@ -87,7 +87,7 @@ for t in syntax protocol agents magnets previews stacks; do ./Scripts/test-$t.sh
 
 ## Thanks
 
-The spring feel is based on Facebook's [Rebound](https://github.com/facebookarchive/rebound) (BSD). Also looked at [brutella/chatheads](https://github.com/brutella/chatheads) and [BubbleControl-Swift](https://github.com/cemolcay/BubbleControl-Swift).
+The spring feel is based on Facebook's [Rebound](https://github.com/facebookarchive/rebound) (BSD). Also looked at [brutella/chatheads](https://github.com/brutella/chatheads) and [BubbleControl-Swift](https://github.com/cemolcay/BubbleControl-Swift). The Full CLI view uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT).
 
 ## License
 
