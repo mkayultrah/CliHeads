@@ -75,6 +75,13 @@ struct ChatComposer: NSViewRepresentable {
             super.paste(sender)
         }
 
+        /// A plain-text view says it can't paste images, which greys out Paste and
+        /// kills Cmd+V when only an image is on the clipboard. Allow it when we take images.
+        override func validateMenuItem(_ item: NSMenuItem) -> Bool {
+            if item.action == #selector(paste(_:)), onImages != nil, NSImage.canInit(with: .general) { return true }
+            return super.validateMenuItem(item)
+        }
+
         override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
             if let onImages {
                 let images = ImageAttachment.from(pasteboard: sender.draggingPasteboard)

@@ -326,8 +326,11 @@ struct SessionCatalog {
         let prefixes = ["<system-reminder>", "<command-name>", "<command-message>", "<local-command-",
                         "<command-args>", "Caveat: The messages below", "[Request interrupted",
                         "This session is being continued from a previous conversation",
-                        "<environment_context>", "<user_instructions>", "<user_info>", "<rules>"]
-        return prefixes.contains { trimmed.hasPrefix($0) }
+                        "<environment_context>", "<user_instructions>", "<user_info>", "<rules>",
+                        "<task-notification>", "[SYSTEM NOTIFICATION"]
+        if prefixes.contains(where: { trimmed.hasPrefix($0) }) { return true }
+        // Any message that is just one hyphenated tag block (<some-tag>…</some-tag>) was injected by the CLI, not typed.
+        return trimmed.range(of: #"^<([a-z]+[-_][a-z0-9_-]*)>[\s\S]*</\1>$"#, options: .regularExpression) != nil
     }
 
     /// A few words for the head and header, not the whole first prompt.
