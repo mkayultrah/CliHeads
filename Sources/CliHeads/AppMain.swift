@@ -63,11 +63,11 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         signal(SIGPIPE, SIG_IGN)
         let firstRun = !FileManager.default.fileExists(atPath: storageURL.path)
         createStatusMenu()
+        createEditMenu()
         createOptionsBubble()
         restoreSavedHeads()
         if firstRun && windows.isEmpty {
-            let provider = AgentProvider.allCases.first { CLILocator.find($0.executable) != nil } ?? .claude
-            createHead(in: NSHomeDirectory(), provider: provider, activate: false)
+            createHead(in: NSHomeDirectory(), provider: Self.defaultProvider, activate: false)
         }
         // Reading the login shell PATH can take a moment, so do it off the main thread.
         DispatchQueue.global(qos: .utility).async { CLILocator.warmUp() }
@@ -75,6 +75,33 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         persistHeads()
         installDismissMonitors()
         dismissTarget.onHeadCenter = { [weak self] center in self?.magnetTick(center) }
+    }
+
+    /// The menu bar never shows for an accessory app, but its key equivalents still
+    /// fire. Without this, Cmd+C/V/X/A/Z do nothing in the chat.
+    private func createEditMenu() {
+        let main = NSMenu()
+        let appItem = NSMenuItem()
+        appItem.submenu = NSMenu()
+        main.addItem(appItem)
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        let editItem = NSMenuItem()
+        editItem.submenu = edit
+        main.addItem(editItem)
+        NSApp.mainMenu = main
+    }
+
+    /// The first installed CLI, for chats where nobody picked one.
+    private static var defaultProvider: AgentProvider {
+        AgentProvider.allCases.first { CLILocator.find($0.executable) != nil } ?? .claude
     }
 
     func applicationDidChangeScreenParameters(_ notification: Notification) {
@@ -205,17 +232,23 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     private func openOptionsMenu() {
         guard let optionsSurface else { return }
         let menu = NSMenu()
-        for (title, selector) in [
-            ("New Claude Code chat", #selector(newClaude)),
-            ("New Codex chat", #selector(newCodex)),
-            ("New Gemini chat", #selector(newGemini)),
-            ("New Grok chat", #selector(newGrok)),
-            ("New chat in folder…", #selector(newFolderHead))
+        menu.autoenablesItems = false
+        for (provider, selector) in [
+            (AgentProvider.claude, #selector(newClaude)),
+            (.codex, #selector(newCodex)),
+            (.gemini, #selector(newGemini)),
+            (.grok, #selector(newGrok))
         ] {
-            let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+            let installed = CLILocator.find(provider.executable) != nil
+            let item = NSMenuItem(title: "New \(provider.title) chat" + (installed ? "" : " (not installed)"),
+                                  action: selector, keyEquivalent: "")
             item.target = self
+            item.isEnabled = installed
             menu.addItem(item)
         }
+        let folder = NSMenuItem(title: "New chat in folder…", action: #selector(newFolderHead), keyEquivalent: "")
+        folder.target = self
+        menu.addItem(folder)
         menu.addItem(.separator())
         let resume = NSMenuItem(title: "Browse / resume conversations…",
                                 action: #selector(showSessionPicker), keyEquivalent: "")
@@ -251,7 +284,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         // Accessory apps can open panels behind the front app, and the chat would cover it.
         collapseAll()
         NSApp.activate(ignoringOtherApps: true)
-        if panel.runModal() == .OK, let url = panel.url { createHead(in: url.path, provider: .claude) }
+        if panel.runModal() == .OK, let url = panel.url { createHead(in: url.path, provider: Self.defaultProvider) }
     }
 
     @objc private func showSessionPicker() {
@@ -343,8 +376,10 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
                 self?.sessionInUse($0) ?? false
             })
         }
-        if activate { windows[saved.id]?.prepareFlyIn() }
-        if activate { openConversationDirectly(saved.id) }
+        if activate {
+            windows[saved.id]?.prepareFlyIn()
+            openConversationDirectly(saved.id)
+        }
         else { layoutStacks() }
         persistHeads()
     }
@@ -358,8 +393,6 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     private func addHead(_ saved: SavedHead) {
         let session = AgentSession(saved: saved)
         // New bubbles must not spawn directly on top of existing ones.
-        // These branches contain setup statements, so use assignments rather
-        // than a Swift if-expression (which requires expression-only branches).
         let position: NSPoint?
         if let x = saved.x, let y = saved.y {
             position = NSPoint(x: x, y: y)
@@ -716,7 +749,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         chainSprings = [:]
     }
 
-    /// Each follower chases the one in front of it on a FOLLOW spring.
+    /// Each follower chases the one in front of it on a follow spring.
     private func tickChain() {
         guard let leaderID = lifted.first, let leader = windows[leaderID] else { stopChain(); return }
         let now = CACurrentMediaTime()
@@ -876,8 +909,11 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         }.sorted { $0.title < $1.title }
         let url = storageURL
         do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+            // Chats are private, so keep the folder owner-only even if it already existed.
+            let folder = url.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: folder,
                 withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
             let data = try JSONEncoder().encode(snapshots)
             try data.write(to: url, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
@@ -910,7 +946,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
 
     private func installDismissMonitors() {
         if let keys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
-            if event.keyCode == 53, let self, self.expandedStack != nil, self.escapeCollapses(event) {
+            if event.keyCode == 53 /* Esc */, let self, self.expandedStack != nil, self.escapeCollapses(event) {
                 self.collapseAll()
                 return nil
             }

@@ -16,72 +16,6 @@ enum BubbleStackLayout {
         return BubbleStackKey(displayID: screen.id,
                               side: center.x < screen.visibleFrame.midX ? .left : .right)
     }
-
-    /// Fans out along the same edge, then into additional columns if there are
-    /// too many sessions for the display height. Handles negative coordinates.
-    static func fanPositions(anchor: CGPoint, count: Int, size: CGSize,
-                             display: MagneticDisplay, side: MagneticSide) -> [CGPoint] {
-        guard count > 0 else { return [] }
-        let available = display.visibleFrame
-        let margin: CGFloat = 12
-        let gap: CGFloat = 10
-        let pitchY = size.height + gap
-        let pitchX = size.width + gap
-        let safeHeight = max(size.height, available.height - 2 * margin)
-        let maxRows = max(1, Int((safeHeight + gap) / pitchY))
-        let minY = available.minY + margin
-        let maxY = max(minY, available.maxY - margin - size.height)
-        let minX = available.minX + MagneticSnapEngine.edgeInset
-        let maxX = max(minX, available.maxX - size.width - MagneticSnapEngine.edgeInset)
-        var positions: [CGPoint] = []
-        for index in 0..<count {
-            let column = index / maxRows
-            let row = index % maxRows
-            let rowsInColumn = min(maxRows, count - column * maxRows)
-            let desiredStartY = anchor.y - CGFloat(rowsInColumn - 1) * pitchY / 2
-            let startY = max(minY, min(desiredStartY, maxY - CGFloat(rowsInColumn - 1) * pitchY))
-            let x = anchor.x + (side == .right ? -1 : 1) * CGFloat(column) * pitchX
-            positions.append(CGPoint(x: max(minX, min(x, maxX)), y: startY + CGFloat(row) * pitchY))
-        }
-        return positions
-    }
-}
-
-extension BubbleStackLayout {
-    /// Messenger-style horizontal row, starting from the docked head and moving
-    /// into its monitor. The final position is reserved for the options cog.
-    /// Wraps into additional rows rather than drawing off the neighbouring display.
-    static func trayPositions(anchor: CGPoint, count: Int, size: CGSize,
-                              display: MagneticDisplay, side: MagneticSide) -> [CGPoint] {
-        guard count > 0 else { return [] }
-        let visible = display.visibleFrame
-        let gap: CGFloat = 10
-        let pitch = size.width + gap
-        let margin: CGFloat = 14
-        let columns = max(1, Int((visible.width - margin * 2 + gap) / pitch))
-        let maxX = visible.maxX - margin - size.width
-        let minX = visible.minX + margin
-        // Some dock positions tuck slightly off-screen. Pull the row's base
-        // fully inside the display before placing neighbouring chats.
-        let startX = side == .right ? maxX : minX
-        let rows = Int(ceil(Double(count) / Double(columns)))
-        let lowestStart = visible.minY + margin + CGFloat(max(0, rows - 1)) * pitch
-        let highestStart = visible.maxY - size.height - margin
-        // Centre a multi-row tray around its docked head, rather than
-        // treating the first row as the entire tray's visual centre.
-        let preferredTop = anchor.y + CGFloat(max(0, rows - 1)) * pitch / 2
-        let startY = max(min(lowestStart, highestStart),
-                         min(preferredTop, highestStart))
-        return (0..<count).map { index in
-            let column = index % columns
-            let row = index / columns
-            let x = startX + (side == .right ? -1 : 1) * CGFloat(column) * pitch
-            let desiredY = startY - CGFloat(row) * pitch
-            let y = max(visible.minY + margin,
-                        min(desiredY, visible.maxY - size.height - margin))
-            return CGPoint(x: max(minX, min(x, maxX)), y: y)
-        }
-    }
 }
 
 extension BubbleStackLayout {
@@ -95,7 +29,7 @@ extension BubbleStackLayout {
         guard count > 0 else { return [] }
         let visible = display.visibleFrame
         let margin: CGFloat = 8
-        let pitch = rowPitch                 // spec: 68-71pt centre to centre
+        let pitch = rowPitch                 // 68-71pt centre to centre
         let gap = pitch - size.width
         let slots = max(1, Int((visible.width - margin * 2 + gap) / pitch))
         let y = visible.maxY - size.height - 6

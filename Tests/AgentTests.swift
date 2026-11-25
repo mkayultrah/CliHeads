@@ -40,7 +40,7 @@ struct AgentTests {
         [{"id":"A9DB4C56-8AB3-422D-A4AD-840A9B1F0A92","title":"Claude Code","directory":"/tmp","claudeSessionID":"old-id","messages":[],"x":-1280,"y":420}]
         """
         let old = try JSONDecoder().decode([SavedHead].self, from: Data(legacy.utf8))
-        must(old.count == 1 && old[0].provider == .claude && old[0].agentSessionID == "old-id", "v0.2 head migrates")
+        must(old.count == 1 && old[0].provider == .claude && old[0].agentSessionID == "old-id", "legacy claudeSessionID format migrates")
         must(old[0].x == -1280 && old[0].y == 420, "Existing monitor position survives")
         let roundTrip = try JSONDecoder().decode([SavedHead].self, from: JSONEncoder().encode(old))
         must(roundTrip[0].agentSessionID == "old-id", "Migrated ID persists")

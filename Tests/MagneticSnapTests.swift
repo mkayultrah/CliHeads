@@ -26,7 +26,7 @@ struct MagneticSnapTests {
                                       velocity: velocity, displays: displays)!
         }
 
-        // At display seams the release pointer, NOT original panel intersection,
+        // At display seams the release pointer, not original panel intersection,
         // selects the display. Each external screen has its own magnetic sides.
         let r = target(CGPoint(x: 1900, y: 540), CGPoint(x: 2000, y: 530))
         verify(r.displayID == "right", "Seam crossing snaps to right-hand monitor")

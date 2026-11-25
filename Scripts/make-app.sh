@@ -33,6 +33,7 @@ fi
 cp Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/HeadIcons/*.png "$APP/Contents/Resources/"
+cp THIRD_PARTY_NOTICES "$APP/Contents/Resources/"
 chmod 755 "$BIN"
 strip -S "$BIN"
 

@@ -16,7 +16,9 @@ enum CLILocator {
     static var searchPath: [String] {
         let home = NSHomeDirectory()
         lock.lock(); let fromShell = shellPath ?? []; lock.unlock()
+        // Only absolute entries: a relative one like "." would resolve inside the project folder.
         let inherited = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map(String.init)
+            .filter { $0.hasPrefix("/") }
         let common = [home + "/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", home + "/.npm-global/bin",
                       home + "/.bun/bin", home + "/.volta/bin", home + "/.grok/bin"] + nvmBins(home: home)
         var seen = Set<String>()

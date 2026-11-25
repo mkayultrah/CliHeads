@@ -86,7 +86,8 @@ struct SessionCatalog {
     /// remains the source of truth for actual conversation context.
     static func recentHistory(_ session: DiscoveredSession, limit: Int = 24) -> [TranscriptMessage] {
         if session.provider == .gemini && session.transcriptURL.pathExtension == "json" {
-            guard let data = try? Data(contentsOf: session.transcriptURL),
+            let size = (try? session.transcriptURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            guard size <= 32_000_000, let data = try? Data(contentsOf: session.transcriptURL),
                   let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                   let entries = object["messages"] as? [[String: Any]] else { return [] }
             return Array(entries.compactMap { item -> TranscriptMessage? in
@@ -211,7 +212,9 @@ struct SessionCatalog {
         guard cwd.hasPrefix("/"), FileManager.default.fileExists(atPath: cwd) else { return nil }
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: 524_288) else { return nil }
+        // Gemini's .json is one document and has to be read whole to parse.
+        let limit = url.pathExtension == "json" ? 32_000_000 : 524_288
+        guard let data = try? handle.read(upToCount: limit) else { return nil }
         var title = "Previous conversation"
         var id: String?
         if url.pathExtension == "json", let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {

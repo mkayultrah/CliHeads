@@ -20,7 +20,6 @@ enum AgentProvider: String, Codable, CaseIterable, Identifiable {
         }
     }
     var executable: String { rawValue }
-    var accent: String { rawValue }
     var supportsPersistentStdin: Bool { self == .claude }
     /// CLIs that let us pick the session UUID up front, so the chat can resume before the first reply.
     var choosesSessionID: Bool { self == .claude || self == .grok }

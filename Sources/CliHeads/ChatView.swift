@@ -18,8 +18,9 @@ struct ChatView: View {
 
     /// Paste into Terminal to carry on this exact chat in the real CLI.
     private var resumeCommand: String? {
-        guard let id = session.agentSessionID else { return nil }
-        let dir = "'" + session.directory.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        guard let rawID = session.agentSessionID else { return nil }
+        let quote = { (value: String) in "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let dir = quote(session.directory), id = quote(rawID)
         switch session.provider {
         case .claude: return "cd \(dir) && claude --resume \(id)"
         case .codex: return "cd \(dir) && codex resume \(id)"
@@ -101,7 +102,7 @@ struct ChatView: View {
                 AgentSession.resumable(provider: provider, directory: directory, excluding: current)
             }.value
         }
-        .alert("Return to Messenger chat?", isPresented: $confirmReturnToChat) {
+        .alert("Return to chat?", isPresented: $confirmReturnToChat) {
             Button("Stay in Full CLI", role: .cancel) {}
             Button("Stop CLI and return") {
                 session.stopTerminal()
@@ -933,6 +934,10 @@ private struct ProseView: View, Equatable {
             }
             .textSelection(.enabled)
             .lineSpacing(3)
+            // Agent text can carry any link. Only open web links, never file or app links.
+            .environment(\.openURL, OpenURLAction { url in
+                ["http", "https"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
+            })
         }
     }
 }

@@ -254,7 +254,7 @@ enum PermissionMode: String, CaseIterable {
         case .plan: return "⏸ plan mode on"
         case .auto: return "⏵⏵ auto mode on"
         case .bypassPermissions: return "⏵⏵ bypass permissions on"
-        case .dontAsk: return "⏵⏵ dont ask mode on"
+        case .dontAsk: return "⏵⏵ don't ask mode on"
         }
     }
 
@@ -265,7 +265,7 @@ enum PermissionMode: String, CaseIterable {
         case .plan: return "plan mode"
         case .auto: return "auto mode"
         case .bypassPermissions: return "bypass permissions"
-        case .dontAsk: return "dont ask mode"
+        case .dontAsk: return "don't ask mode"
         }
     }
 

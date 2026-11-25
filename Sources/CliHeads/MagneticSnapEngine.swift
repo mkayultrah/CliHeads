@@ -1,8 +1,8 @@
 import Foundation
 import CoreGraphics
 
-// Independent of AppKit so multi-display geometry and spring integration can be
-// tested on Linux as well as macOS. Coordinates are macOS global screen points.
+// Independent of AppKit so the multi-display geometry and spring integration
+// can be tested on their own. Coordinates are macOS global screen points.
 struct MagneticDisplay {
     let id: String
     let frame: CGRect
@@ -45,7 +45,7 @@ enum MagneticSnapEngine {
     /// Fling projection time (seconds of release velocity carried forward).
     static let projectionTime: CGFloat = 0.17
 
-    /// Screen selection is based on the pointer's RELEASE position, not the
+    /// Screen selection is based on the pointer's release position, not the
     /// first intersecting bubble frame: otherwise a bubble crossing a monitor
     /// seam can snap back to the monitor it started on.
     static func display(at pointer: CGPoint, in displays: [MagneticDisplay]) -> MagneticDisplay? {
@@ -118,20 +118,16 @@ enum MagneticSnapEngine {
     }
 }
 
-/// Hooke's-law mass/spring/damper model with fourth-order Runge-Kutta steps,
-/// the same class of velocity-preserving spring simulation Meta documented
-/// for Facebook Chat Heads / Rebound. This is an independent Swift
-/// implementation, not Meta's Android engine or copied source code.
+/// RK4 mass-spring-damper. Constants use Rebound's origami tension/friction conversion.
 struct MagneticSpringAxis {
     var position: Double
     var velocity: Double
     var target: Double
 
-    // Defaults to the POS spring from the spec.
-    var stiffness: Double = Springs.pos.stiffness
-    var damping: Double = Springs.pos.damping
-    var restDistance: Double = Springs.restDistance
-    var restSpeed: Double = 3
+    var stiffness: Double
+    var damping: Double
+    var restDistance: Double
+    var restSpeed: Double
 
     init(position: Double, velocity: Double = 0, target: Double,
          spec: Springs.Spec = Springs.pos,
@@ -195,8 +191,6 @@ struct MagneticSpringPoint {
     }
 
     mutating func step(elapsed: Double) {
-        // Bound the numerical step. Integration remains stable when a timer
-        // hiccups because of high system load or a Spaces transition.
         x.advance(elapsed)
         y.advance(elapsed)
     }

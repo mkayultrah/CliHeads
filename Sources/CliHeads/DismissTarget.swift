@@ -4,8 +4,8 @@ import QuartzCore
 
 /// Bottom gradient plus the round X that rises while a head is dragged.
 /// Also owns the magnet: close to the X the dragged head is pulled onto it.
-/// Coordinates are AppKit (y up), so the spec's "screen y grows down" values
-/// are mirrored here.
+/// Coordinates are AppKit (y up), so offsets that read as "down the screen"
+/// are negative here.
 @MainActor
 final class DismissTarget {
     static let circleDiameter: CGFloat = 76
@@ -70,7 +70,6 @@ final class DismissTarget {
     }
 
     var windowNumber: Int { circlePanel.windowNumber }
-    var gradientWindowNumber: Int { gradientPanel.windowNumber }
 
     private var anchor: CGPoint { CGPoint(x: visible.midX, y: visible.minY + Self.anchorLift) }
 
@@ -251,7 +250,7 @@ final class GradientView: NSView {
 }
 
 final class DismissView: NSView {
-    var circleScale: CGFloat = 0.7 { didSet { if circleScale != oldValue { needsDisplay = true } } }
+    var circleScale = CGFloat(DismissTarget.restingScale) { didSet { if circleScale != oldValue { needsDisplay = true } } }
     override var isOpaque: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {

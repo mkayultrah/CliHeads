@@ -79,6 +79,8 @@ NOTARY_PROFILE=your-profile \
 
 You get a signed, notarised, universal `dist/CliHeads-<version>.zip`. Leave out `NOTARY_PROFILE` to skip notarising. The version comes from `Info.plist`.
 
+Without a Developer ID, `UNIVERSAL=1 ./Scripts/make-app.sh && ./Scripts/make-dmg.sh` gives an ad hoc signed DMG. That's how the current GitHub release is built, hence the Gatekeeper steps under Download.
+
 ## Tests
 
 ```sh
@@ -87,7 +89,9 @@ for t in syntax protocol agents magnets previews stacks; do ./Scripts/test-$t.sh
 
 ## Thanks
 
-The spring feel is based on Facebook's [Rebound](https://github.com/facebookarchive/rebound) (BSD). Also looked at [brutella/chatheads](https://github.com/brutella/chatheads) and [BubbleControl-Swift](https://github.com/cemolcay/BubbleControl-Swift). The Full CLI view uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT).
+The spring feel is based on Facebook's [Rebound](https://github.com/facebookarchive/rebound) (BSD). Also looked at [brutella/chatheads](https://github.com/brutella/chatheads) and [BubbleControl-Swift](https://github.com/cemolcay/BubbleControl-Swift). The Full CLI view uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT, see `THIRD_PARTY_NOTICES`).
+
+Claude, Codex, Gemini and Grok names and logos are trademarks of their owners. CliHeads is an independent project and isn't affiliated with or endorsed by Anthropic, OpenAI, Google or xAI.
 
 ## License
 

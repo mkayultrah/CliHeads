@@ -39,7 +39,6 @@ final class BubbleSurface: NSView {
     var onContextMenu: (() -> Void)?
     var working = false { didSet { needsDisplay = true } }
     var unread = 0 { didSet { needsDisplay = true } }
-    var stackCount = 1 { didSet { needsDisplay = true } }
     // Set by the stack controller; the badge may represent several hidden chats.
     var totalUnread: Int? { didSet { needsDisplay = true } }
 
@@ -81,7 +80,7 @@ final class BubbleSurface: NSView {
         scaleSink?(value)
     }
 
-    /// Bouncy SCALE spring from the current value.
+    /// Bouncy scale spring from the current value.
     func springScale(from start: CGFloat? = nil, to value: CGFloat) {
         if let start { snapScale(start) }
         scaleSpring = MagneticSpringAxis(position: Double(scale), velocity: scaleSpring.velocity,
@@ -125,8 +124,8 @@ final class BubbleSurface: NSView {
         // Keep the face, the frosted layer and the symbol centred on the same
         // 56pt circle. A pressed head changes tint, not the circle's geometry.
         let baseRect = bounds.insetBy(dx: 5, dy: 5)
-        // Heads behind the front one are real windows now, so no painted stack.
-        drawBubble(in: baseRect, alpha: 1.0, symbolAlpha: 1.0)
+        // Heads behind the front one are their own windows, so no stack is painted here.
+        drawBubble(in: baseRect)
 
         let badgeCount = totalUnread ?? unread
         if badgeCount > 0 {
@@ -161,25 +160,24 @@ final class BubbleSurface: NSView {
                                 withAttributes: attrs)
     }
 
-    private func drawBubble(in rect: NSRect, alpha: CGFloat, symbolAlpha: CGFloat) {
+    private func drawBubble(in rect: NSRect) {
         let circle = NSBezierPath(ovalIn: rect)
         if let logo = HeadArt.logo(for: provider.rawValue) {
             NSGraphicsContext.saveGraphicsState()
             let shadow = NSShadow()
             shadow.shadowBlurRadius = 10
             shadow.shadowOffset = NSSize(width: 0, height: -1)
-            shadow.shadowColor = NSColor.black.withAlphaComponent(0.22 * alpha)
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.22)
             shadow.set()
             // Shadow caster sits just inside the face so its edge never peeks out.
             NSColor.black.setFill()
             NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
             NSGraphicsContext.restoreGraphicsState()
-            HeadArt.drawFace(provider: provider.rawValue, logo: logo, in: rect, pressed: pressed, alpha: alpha)
+            HeadArt.drawFace(provider: provider.rawValue, logo: logo, in: rect, pressed: pressed)
             return
         }
-        // Translucent colour over a real NSVisualEffectView. The old 75% tint
-        // practically hid the blur, making the head look like flat plastic.
-        let tint = alpha * (pressed ? 0.34 : 0.20)
+        // Translucent colour over the NSVisualEffectView, so the blur shows through.
+        let tint: CGFloat = pressed ? 0.34 : 0.20
         let gradientColors: [NSColor]
         switch provider {
         case .claude:
@@ -199,13 +197,12 @@ final class BubbleSurface: NSView {
         let shadow = NSShadow()
         shadow.shadowBlurRadius = 10
         shadow.shadowOffset = NSSize(width: 0, height: -1)
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.22 * alpha)
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.22)
         shadow.set()
         NSGradient(colors: gradientColors)?.draw(in: circle, angle: 60)
         NSGraphicsContext.restoreGraphicsState()
 
-        // The blur comes from the NSVisualEffectView underneath, rather than
-        // the fake painted white bar from older builds.
+        // The blur comes from the NSVisualEffectView underneath.
         let iconName: String
         switch provider {
         case .claude: iconName = "terminal.fill"
@@ -213,14 +210,13 @@ final class BubbleSurface: NSView {
         case .gemini: iconName = "sparkles"
         case .grok: iconName = "bolt.fill"
         }
-        if symbolAlpha > 0.01,
-           let symbol = NSImage(systemSymbolName: iconName, accessibilityDescription: provider.title) {
+        if let symbol = NSImage(systemSymbolName: iconName, accessibilityDescription: provider.title) {
             let size = NSSize(width: 30, height: 30)
             let position = NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2)
             let configured = symbol.withSymbolConfiguration(.init(pointSize: 25, weight: .medium)) ?? symbol
             let whiteIcon = configured.withSymbolConfiguration(.init(paletteColors: [.white])) ?? configured
             whiteIcon.draw(in: NSRect(origin: position, size: size), from: .zero,
-                           operation: .sourceOver, fraction: symbolAlpha)
+                           operation: .sourceOver, fraction: 1)
         }
     }
 
@@ -383,7 +379,6 @@ final class HeadWindows {
     var onOpenDirect: (() -> Void)?
     var onCollapsed: (() -> Void)?
     var onDragStarted: (() -> Void)?
-    var onDragMoved: ((_ pointer: CGPoint) -> Void)?
     /// Return true when the drop was consumed (eg. dropped on the X).
     var onDropRequest: ((_ pointer: CGPoint, _ velocity: CGPoint) -> Bool)?
     var onUnreadChanged: (() -> Void)?
@@ -406,7 +401,7 @@ final class HeadWindows {
     private var previewEligible = false
     private var previewGeneration: UInt64 = 0
     private var launchVelocity: CGPoint?
-    // Chat panel open/close animation (PANEL_OPEN / PANEL_CLOSE).
+    // Chat panel open/close animation.
     private let chatRoot = NSView()
     private var panelAxis = MagneticSpringAxis(position: 0, target: 0, spec: Springs.panelOpen,
                                                restDistance: 0.002, restSpeed: 0.02)
@@ -420,7 +415,6 @@ final class HeadWindows {
 
     static let bubbleSize: CGFloat = 66
     static let caretHeight: CGFloat = 11
-    static let chatBodySize = NSSize(width: 430, height: 570)
     static let chatSize = NSSize(width: 430, height: 570 + caretHeight)
 
     private static var displays: [MagneticDisplay] {
@@ -505,7 +499,6 @@ final class HeadWindows {
         bubbleView.onDrag = { [weak self] in
             guard let self else { return }
             self.refreshPreviewVisibility()
-            self.onDragMoved?(NSEvent.mouseLocation)
         }
         bubbleView.onDrop = { [weak self] pointer, velocity in
             guard let self else { return }
@@ -747,16 +740,6 @@ final class HeadWindows {
 
     func setAnchor(_ origin: CGPoint) { anchorPosition = origin; displacedAnchor = nil }
 
-    func updateAnchor(_ origin: CGPoint) {
-        cancelSpring()
-        anchorPosition = origin; displacedAnchor = nil
-        bubblePanel.setFrameOrigin(origin)
-        bubbleView.edgeSide = currentSide()
-        refreshPreviewVisibility()
-    }
-
-    var isMoving: Bool { spring != nil }
-
     private func currentSide() -> MagneticSide {
         let center = CGPoint(x: bubblePanel.frame.midX, y: bubblePanel.frame.midY)
         if let display = MagneticSnapEngine.display(at: center, in: Self.displays) {
@@ -798,7 +781,7 @@ final class HeadWindows {
         previewPanel.orderFrontRegardless()
     }
 
-    /// Called after dragging. Selects the screen containing the RELEASE
+    /// Called after dragging. Selects the screen containing the release
     /// pointer even if the bubble still overlaps the previous display.
     func snapToEdge(releasePointer: CGPoint, velocity: CGPoint) {
         guard let target = MagneticSnapEngine.target(
@@ -808,7 +791,7 @@ final class HeadWindows {
             velocity: velocity,
             displays: Self.displays
         ) else { return }
-        // The POS spring carries the full release velocity.
+        // The position spring carries the full release velocity.
         anchorPosition = target.origin; displacedAnchor = nil
         runSpring(to: target.origin, velocity: velocity, commits: true, completion: nil)
     }

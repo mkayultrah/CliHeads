@@ -164,9 +164,9 @@ final class AgentSession: ObservableObject {
         }
     }
 
-    /// /resume and /clear are done by the chat head itself. True if handled.
+    /// /resume and /clear need the CLI's interactive picker, so the chat head does them
+    /// itself. True if handled.
     private func handleNativeCommand(_ prompt: String) -> Bool {
-        // /resume and /clear need the CLI's interactive picker, so the chat head does them natively.
         if let match = prompt.range(of: #"^/(resume|continue)\b"#, options: [.regularExpression, .caseInsensitive]) {
             // Whatever follows /resume becomes the search text; the composer keeps filtering it.
             let query = String(prompt[match.upperBound...]).trimmingCharacters(in: .whitespaces)
@@ -380,7 +380,7 @@ final class AgentSession: ObservableObject {
                 unavailableModes.insert(pending.requested)
                 if permissionMode == pending.requested { permissionMode = pending.previous }
                 addDiagnostic("Mode change refused: \(error)")
-                addNotice("cant switch to \(pending.requested.title): \(error)")
+                addNotice("can't switch to \(pending.requested.title): \(error)")
             } else {
                 addDiagnostic("Mode: \(pending.requested.rawValue)")
             }
@@ -529,7 +529,6 @@ final class AgentSession: ObservableObject {
         updateCounter += 1; onSave?()
     }
 
-    /// Past Claude conversations for this head's folder, newest first. Call off the main thread.
     nonisolated static func samePath(_ a: String, _ b: String) -> Bool {
         func resolved(_ path: String) -> String {
             URL(fileURLWithPath: path).resolvingSymlinksInPath().standardized.path
@@ -537,6 +536,7 @@ final class AgentSession: ObservableObject {
         return resolved(a) == resolved(b)
     }
 
+    /// Past conversations for this head's folder, newest first. Call off the main thread.
     nonisolated static func resumable(provider: AgentProvider, directory: String, excluding current: String?) -> [DiscoveredSession] {
         var seen = Set<String>()
         return SessionCatalog.discover(limit: 400)
@@ -572,7 +572,6 @@ final class AgentSession: ObservableObject {
         guard let id = currentReplyID, let msg = messages.first(where: { $0.id == id }) else { return true }
         return msg.text.isEmpty
     }
-
 
     private func previewText(fallback: String?, isError: Bool) -> String {
         let raw: String
@@ -713,8 +712,8 @@ final class AgentSession: ObservableObject {
             if let currentID {
                 selected = candidates.first { $0.sessionID == currentID }
             } else {
-                // Only adopt an unknown interactive session if the match is
-                // unambiguous. Never silently resume someone else's chat.
+                // Only adopt an unknown interactive session if exactly one in this
+                // folder changed in the last hour, so a guess is never ambiguous.
                 let recentlyModified = candidates.filter { $0.modified > Date().addingTimeInterval(-3600) }
                 selected = recentlyModified.count == 1 ? recentlyModified.first : nil
             }

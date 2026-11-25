@@ -27,7 +27,10 @@ struct ImageAttachment: Identifiable, Equatable {
                                    "gif": "image/gif", "webp": "image/webp"]
 
     static func from(fileURL: URL) -> ImageAttachment? {
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        // Check it's a reasonably sized image before reading, so dropping a big video doesn't load it all.
+        guard let values = try? fileURL.resourceValues(forKeys: [.contentTypeKey, .fileSizeKey]),
+              values.contentType?.conforms(to: .image) == true, (values.fileSize ?? 0) <= 50_000_000,
+              let data = try? Data(contentsOf: fileURL) else { return nil }
         if let type = sendable[fileURL.pathExtension.lowercased()], data.count <= maxBytes,
            let rep = NSBitmapImageRep(data: data), max(rep.pixelsWide, rep.pixelsHigh) <= maxSide {
             return ImageAttachment(mediaType: type, data: data)
@@ -115,10 +118,13 @@ struct ImageAttachment: Identifiable, Equatable {
         return base.appendingPathComponent("CliHeads/Images", isDirectory: true)
     }
 
+    /// Each image gets its own folder, so handing one image's folder to a CLI
+    /// (Gemini needs that) doesn't expose every other image.
     func save() -> String? {
-        let dir = Self.storeDirectory
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("\(id.uuidString).\(fileExtension)")
+        let dir = Self.storeDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        let url = dir.appendingPathComponent("image.\(fileExtension)")
         return (try? data.write(to: url)) != nil ? url.path : nil
     }
 }
