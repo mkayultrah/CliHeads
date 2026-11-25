@@ -345,11 +345,8 @@ struct ChatView: View {
             }
         }
         guard let list = slashSuggestions else {
-            // Esc stops the agent, like the CLI.
-            if key == .escape {
-                if session.isWorking { session.stop() }
-                return true
-            }
+            // Esc closes the chat (CliHeadsDelegate's key monitor); the stop button stops the agent.
+            if key == .escape { return true }
             return false
         }
         switch key {

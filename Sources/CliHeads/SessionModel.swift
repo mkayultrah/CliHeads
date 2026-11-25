@@ -181,7 +181,7 @@ final class AgentSession: ObservableObject {
         return false
     }
 
-    /// Stop button / Esc: interrupt the turn like the CLI. Kills the process if it won't stop.
+    /// Stop button: interrupt the turn like the CLI. Kills the process if it won't stop.
     func stop() {
         guard status == .working, !interrupting else { return }
         pendingPermissions.removeAll()

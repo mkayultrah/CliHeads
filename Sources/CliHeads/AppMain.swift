@@ -955,8 +955,8 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
 
     private func hideScrim() { scrim?.dismiss() }
 
-    /// Esc closes the open chat only when nothing inside it wants the key:
-    /// a running agent, a popup list, a permission card or the Full CLI terminal.
+    /// Esc closes the open chat, even mid-turn (the agent keeps working), unless
+    /// something inside wants the key: a popup list, a permission card or the Full CLI terminal.
     private func escapeCollapses(_ event: NSEvent) -> Bool {
         guard let window = event.window, window.attachedSheet == nil, NSApp.modalWindow == nil else { return false }
         guard let id = activeHeadID, let head = windows[id], window === head.chatPanel else {
@@ -964,7 +964,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         }
         guard window.firstResponder is NSTextView else { return false }
         let session = head.session
-        return !session.isWorking && session.resumeQuery == nil && !session.draft.hasPrefix("/")
+        return session.resumeQuery == nil && !session.draft.hasPrefix("/")
             && session.pendingPermissions.isEmpty
     }
 
