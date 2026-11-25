@@ -32,9 +32,9 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     // Each display edge owns an independent messenger-style stack.
     // Only one stack is open (lined up along the top) at a time.
     private var expandedStack: BubbleStackKey?
-    // On first launch the cog stays out beside the head so settings are
-    // easy to find, until a stack is opened for the first time.
-    private var pinCog = false
+    // At launch the cog stays out beside the head so settings are easy
+    // to find, until a stack is opened.
+    private var pinCog = true
     private var activeHeadID: UUID?
     private var rowOrder: [UUID] = []
     private var frontHeadByStack: [BubbleStackKey: UUID] = [:]
@@ -65,7 +65,6 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         // A dead CLI's stdin must not kill the app on write.
         signal(SIGPIPE, SIG_IGN)
         let firstRun = !FileManager.default.fileExists(atPath: storageURL.path)
-        pinCog = firstRun
         createStatusMenu()
         createEditMenu()
         createOptionsBubble()
