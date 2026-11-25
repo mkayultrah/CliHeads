@@ -14,6 +14,11 @@
   <img src="https://img.shields.io/badge/license-MIT-5B3BEA" alt="MIT license">
 </p>
 
+<p align="center">
+  <img src="Assets/demo.gif" width="400" alt="A reply comes in on a Claude head, the stack opens into a row and the chat drops down">
+  <img src="Assets/screenshot.png" width="400" alt="An open Claude chat under a row of Claude, Codex and Gemini heads">
+</p>
+
 Each chat head is a CLI session running in the background. Click a head to open the chat, drag it around and it snaps to the screen edge, drop heads on each other to stack them, fling one at the X to close it. When an agent replies you get the little preview bubble and an unread badge.
 
 Works with:
@@ -47,6 +52,16 @@ The app isn't notarised by Apple, so the first time you open it macOS will say i
 
 - open System Settings > Privacy & Security, scroll down and click **Open Anyway**, or
 - run `xattr -dr com.apple.quarantine /Applications/CliHeads.app` in Terminal, then open it normally.
+
+## Permissions
+
+CliHeads doesn't ask for Accessibility, Screen Recording, Input Monitoring, camera, microphone or notifications. The app makes no network requests of its own; each CLI talks to its own service using the sign-in you set up in Terminal. Here's what you might see:
+
+- **"Apple could not verify CliHeads" on first launch.** The DMG isn't notarised, see Download above.
+- **Login Items.** Only if you turn on launch at login from the menu bar icon. CliHeads registers itself with macOS, which shows a "Background item added" notice. Turn it off from the same menu or System Settings > General > Login Items.
+- **Desktop, Documents, Downloads, iCloud Drive or external drives.** The agents run as child processes of CliHeads, so when one reads or writes in a protected folder macOS asks on CliHeads' behalf. Allow it if you want agents working there. You can change it later in System Settings > Privacy & Security > Files and Folders.
+
+Picking a folder for a new chat uses the standard macOS folder picker and just tells the agent where to start. Clicking outside an open chat closes it; that uses a plain mouse-click listener, which doesn't need any permission.
 
 ## Build
 
