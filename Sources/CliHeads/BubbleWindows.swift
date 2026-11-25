@@ -298,7 +298,8 @@ final class PreviewSurface: NSView {
 
     private static var attributes: [NSAttributedString.Key: Any] {
         let style = NSMutableParagraphStyle()
-        style.lineBreakMode = .byTruncatingTail
+        // Wrap up to maxLines; .truncatesLastVisibleLine adds the ellipsis.
+        style.lineBreakMode = .byWordWrapping
         return [.font: font, .foregroundColor: NSColor.white, .paragraphStyle: style]
     }
 
