@@ -32,6 +32,9 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     // Each display edge owns an independent messenger-style stack.
     // Only one stack is open (lined up along the top) at a time.
     private var expandedStack: BubbleStackKey?
+    // On first launch the cog stays out beside the head so settings are
+    // easy to find, until a stack is opened for the first time.
+    private var pinCog = false
     private var activeHeadID: UUID?
     private var rowOrder: [UUID] = []
     private var frontHeadByStack: [BubbleStackKey: UUID] = [:]
@@ -62,6 +65,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         // A dead CLI's stdin must not kill the app on write.
         signal(SIGPIPE, SIG_IGN)
         let firstRun = !FileManager.default.fileExists(atPath: storageURL.path)
+        pinCog = firstRun
         createStatusMenu()
         createEditMenu()
         createOptionsBubble()
@@ -540,7 +544,17 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
                 for head in ordered.prefix(Self.maxPeeks + 1).reversed() where head.bubblePanel.isVisible {
                     head.bubblePanel.orderFrontRegardless()
                 }
+                if pinCog, gear == nil {
+                    gear = (pinnedCogPosition(above: front.anchorPosition, size: front.bubblePanel.frame.size),
+                            front.anchorPosition)
+                }
             }
+        }
+        if pinCog, gear == nil, let screen = NSScreen.main?.visibleFrame {
+            // No heads at all: park the cog on the right edge on its own.
+            let size = HeadWindows.bubbleSize
+            let spot = CGPoint(x: screen.maxX - size, y: screen.midY)
+            gear = (spot, spot)
         }
         if let gear, let optionsPanel {
             if !optionsPanel.isVisible { optionsPanel.setFrameOrigin(gear.start) }
@@ -557,6 +571,15 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         } else {
             optionsPanel?.orderOut(nil)
         }
+    }
+
+    /// Just above the head, or just below it when the head sits at the top.
+    private func pinnedCogPosition(above anchor: CGPoint, size: CGSize) -> CGPoint {
+        let lift = size.height - 4
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor) })?.visibleFrame
+            ?? NSScreen.main?.visibleFrame ?? .zero
+        let y = anchor.y + size.height + lift <= screen.maxY ? anchor.y + lift : anchor.y - lift
+        return CGPoint(x: anchor.x, y: y)
     }
 
     /// Badge only refresh, safe to run mid animation.
@@ -592,6 +615,7 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         let active = id ?? front.session.id
         expandedStack = key
         lastUsedStack = key
+        pinCog = false
         rowOrder = [front.session.id] + heads.map(\.session.id).filter { $0 != front.session.id }
         activeHeadID = active
         rememberActivity(active)
@@ -667,6 +691,8 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     private func headDidStartDragging(_ id: UUID) {
         guard !closing.contains(id) else { return }
         guard let head = windows[id], let key = groupKey(for: head) else { return }
+        // The pinned cog comes back beside the head once it's dropped.
+        if pinCog { optionsPanel?.orderOut(nil) }
         let peers = (groupedHeads()[key] ?? []).filter { $0.session.id != id }
         if expandedStack == key {
             // Pull a single head out of the open row.
