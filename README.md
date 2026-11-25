@@ -27,6 +27,7 @@ Each one runs through its own CLI, so install it and sign in from Terminal first
 
 ## Features
 
+- the cog beside the heads starts a new chat with any agent, in any folder, or resumes an old one
 - streaming replies with thinking shown above them
 - click a code block to copy it
 - paste or drop images into the chat
@@ -91,7 +92,7 @@ for t in syntax protocol agents magnets previews stacks; do ./Scripts/test-$t.sh
 
 The spring feel is based on Facebook's [Rebound](https://github.com/facebookarchive/rebound) (BSD). Also looked at [brutella/chatheads](https://github.com/brutella/chatheads) and [BubbleControl-Swift](https://github.com/cemolcay/BubbleControl-Swift). The Full CLI view uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT, see `THIRD_PARTY_NOTICES`).
 
-Claude, Codex, Gemini and Grok names and logos are trademarks of their owners. CliHeads is an independent project and isn't affiliated with or endorsed by Anthropic, OpenAI, Google or xAI.
+Claude, Codex, Gemini, Grok, Facebook and Messenger names and logos are trademarks of their owners. CliHeads is an independent project and isn't affiliated with or endorsed by Anthropic, OpenAI, Google, xAI or Meta.
 
 ## License
 
