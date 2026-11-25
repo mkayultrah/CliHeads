@@ -32,9 +32,6 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     // Each display edge owns an independent messenger-style stack.
     // Only one stack is open (lined up along the top) at a time.
     private var expandedStack: BubbleStackKey?
-    // At launch the cog stays out beside the head so settings are easy
-    // to find, until a stack is opened.
-    private var pinCog = true
     private var activeHeadID: UUID?
     private var rowOrder: [UUID] = []
     private var frontHeadByStack: [BubbleStackKey: UUID] = [:]
@@ -543,13 +540,16 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
                 for head in ordered.prefix(Self.maxPeeks + 1).reversed() where head.bubblePanel.isVisible {
                     head.bubblePanel.orderFrontRegardless()
                 }
-                if pinCog, gear == nil {
+                // The cog always sits beside a closed stack so settings are
+                // easy to find. With stacks on several edges, the last used wins.
+                let cogStack = lastUsedStack.flatMap { groups[$0] == nil ? nil : $0 } ?? groups.keys.first
+                if expandedStack == nil, key == cogStack {
                     gear = (pinnedCogPosition(above: front.anchorPosition, size: front.bubblePanel.frame.size),
                             front.anchorPosition)
                 }
             }
         }
-        if pinCog, gear == nil, let screen = NSScreen.main?.visibleFrame {
+        if gear == nil, let screen = NSScreen.main?.visibleFrame {
             // No heads at all: park the cog on the right edge on its own.
             let size = HeadWindows.bubbleSize
             let spot = CGPoint(x: screen.maxX - size, y: screen.midY)
@@ -614,7 +614,6 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
         let active = id ?? front.session.id
         expandedStack = key
         lastUsedStack = key
-        pinCog = false
         rowOrder = [front.session.id] + heads.map(\.session.id).filter { $0 != front.session.id }
         activeHeadID = active
         rememberActivity(active)
@@ -690,8 +689,8 @@ final class CliHeadsDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, N
     private func headDidStartDragging(_ id: UUID) {
         guard !closing.contains(id) else { return }
         guard let head = windows[id], let key = groupKey(for: head) else { return }
-        // The pinned cog comes back beside the head once it's dropped.
-        if pinCog { optionsPanel?.orderOut(nil) }
+        // The cog comes back beside the head once it's dropped.
+        optionsPanel?.orderOut(nil)
         let peers = (groupedHeads()[key] ?? []).filter { $0.session.id != id }
         if expandedStack == key {
             // Pull a single head out of the open row.
