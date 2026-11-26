@@ -648,8 +648,8 @@ final class HeadWindows {
     private func applyPanel() {
         guard let layer = chatRoot.layer else { return }
         let p = panelAxis.position
-        let upper: Double = panelOpening ? 1.06 : 1
-        let scale = CGFloat(max(0.001, min(p, upper)))
+        // No overshoot past 1: the panel window would clip the scaled content.
+        let scale = CGFloat(max(0.001, min(p, 1)))
         let pivot = CGPoint(x: chrome.caretX,
                             y: chatRoot.isFlipped ? 0 : chatRoot.bounds.height)
         layer.transform = Self.scaleTransform(scale, about: pivot, layer: layer, size: chatRoot.bounds.size)
